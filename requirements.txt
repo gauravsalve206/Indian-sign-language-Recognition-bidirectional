@@ -1,7 +1,8 @@
 opencv-python
 # Unpinned mediapipe; install latest available for your platform.
-mediapipe
-tensorflow
+# mediapipe
+# tensorflow
+tensorflow==2.15.0
 fastapi
 # Include WebSocket support for uvicorn
 uvicorn[standard]
@@ -10,4 +11,4 @@ pandas
 scikit-learn
 python-multipart
 jinja2
-
+mediapipe==0.10.9
