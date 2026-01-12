@@ -1,4 +1,5 @@
-opencv-python
+opencv-python-headless
+# Use headless version for server deployment (no GUI dependencies)
 # Unpinned mediapipe; install latest available for your platform.
 # mediapipe
 # tensorflow
