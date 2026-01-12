@@ -1,0 +1,13 @@
+opencv-python
+# Unpinned mediapipe; install latest available for your platform.
+mediapipe
+tensorflow
+fastapi
+# Include WebSocket support for uvicorn
+uvicorn[standard]
+numpy
+pandas
+scikit-learn
+python-multipart
+jinja2
+

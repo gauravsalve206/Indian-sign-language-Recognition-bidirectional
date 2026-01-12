@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ISL Translator - Home</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="nav-logo">ISL Translator</a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link active">Home</a>
+        <a href="sign-to-text.html" class="nav-link">Sign to Text</a>
+        <a href="text-to-sign.html" class="nav-link">Text to Sign</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="home-container">
+      <div class="hero">
+        <h1>Indian Sign Language Translator</h1>
+        <p class="hero-subtitle">Bridge the communication gap with real-time sign language recognition and translation</p>
+      </div>
+
+      <div class="features">
+        <div class="feature-card" onclick="window.location.href='sign-to-text.html'">
+          <div class="feature-icon">👋</div>
+          <h3>Sign to Text</h3>
+          <p>Use your webcam to perform sign language gestures and get real-time text recognition</p>
+          <button class="btn-primary">Get Started</button>
+        </div>
+
+        <div class="feature-card" onclick="window.location.href='text-to-sign.html'">
+          <div class="feature-icon">📝</div>
+          <h3>Text to Sign</h3>
+          <p>Enter text and see sign language demonstrations (Coming soon)</p>
+          <button class="btn-primary">Try It Out</button>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h2>How It Works</h2>
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <h4>Choose Mode</h4>
+            <p>Select either Sign to Text or Text to Sign based on your needs</p>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <h4>Interact</h4>
+            <p>Use your webcam for sign recognition or enter text for translation</p>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <h4>Get Results</h4>
+            <p>Receive real-time recognition or sign language demonstrations</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>&copy; 2024 ISL Translator. Built with MediaPipe and TensorFlow.</p>
+  </footer>
+</body>
+</html>

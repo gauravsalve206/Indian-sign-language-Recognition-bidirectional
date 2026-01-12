@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign to Text - ISL Recognition</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="nav-logo">ISL Translator</a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="sign-to-text.html" class="nav-link active">Sign to Text</a>
+        <a href="text-to-sign.html" class="nav-link">Text to Sign</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="card">
+      <h2>Sign to Text Recognition</h2>
+      <p class="subtitle">Show your sign language gestures and get text recognition</p>
+      <video id="video" autoplay muted playsinline></video>
+      <div class="prediction">
+        <span id="label">waiting...</span>
+        <span id="confidence"></span>
+      </div>
+      <div class="speak-control">
+        <button id="speakToggleBtn" class="btn-toggle">
+          <span id="speakIcon">🔇</span>
+          <span id="speakText">Enable Speech</span>
+        </button>
+      </div>
+      <div id="status">Connecting to backend...</div>
+    </div>
+  </main>
+
+  <script>
+    const video = document.getElementById("video");
+    const labelEl = document.getElementById("label");
+    const confEl = document.getElementById("confidence");
+    const statusEl = document.getElementById("status");
+    const speakToggleBtn = document.getElementById("speakToggleBtn");
+    const speakIcon = document.getElementById("speakIcon");
+    const speakTextEl = document.getElementById("speakText");
+
+    const WS_URL = "ws://localhost:8000/ws";
+    let ws;
+    let lastSpokenLabel = "";
+    let lastSpokenTime = 0;
+    let speakEnabled = false; // Track if speech is enabled
+    const SPEAK_MIN_CONFIDENCE = 0.6;
+    const SPEAK_COOLDOWN_MS = 1500;
+
+
+    // Toggle speech function
+    function toggleSpeak() {
+      speakEnabled = !speakEnabled;
+      if (speakEnabled) {
+        speakIcon.textContent = "🔊";
+        speakTextEl.textContent = "Disable Speech";
+        speakToggleBtn.classList.add("active");
+      } else {
+        speakIcon.textContent = "🔇";
+        speakTextEl.textContent = "Enable Speech";
+        speakToggleBtn.classList.remove("active");
+        // Stop any ongoing speech when disabled
+        window.speechSynthesis.cancel();
+      }
+    }
+
+    speakToggleBtn.addEventListener("click", toggleSpeak);
+
+    function speakText(text) {
+      // Only speak if enabled
+      if (!speakEnabled) return;
+      if (!("speechSynthesis" in window)) return;
+      const now = Date.now();
+      if (text === lastSpokenLabel && now - lastSpokenTime < SPEAK_COOLDOWN_MS) return;
+
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "en-IN";
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+
+      lastSpokenLabel = text;
+      lastSpokenTime = now;
+    }
+
+    async function setupCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        await video.play();
+        statusEl.textContent = "Camera ready. Connecting to server...";
+      } catch (err) {
+        statusEl.textContent = "Error accessing camera: " + err.message;
+        console.error("Camera error:", err);
+      }
+    }
+
+    function connectWebSocket() {
+      ws = new WebSocket(WS_URL);
+      
+      ws.onopen = () => {
+        statusEl.textContent = "Connected. Streaming frames...";
+        statusEl.style.color = "#34d399";
+      };
+      
+      ws.onclose = () => {
+        statusEl.textContent = "Connection closed. Refresh to retry.";
+        statusEl.style.color = "#ef4444";
+      };
+      
+      ws.onerror = (error) => {
+        statusEl.textContent = "Connection error. Make sure backend is running on port 8000.";
+        statusEl.style.color = "#ef4444";
+        console.error("WebSocket error:", error);
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          labelEl.textContent = data.label || "waiting...";
+          
+          if (data.confidence && data.confidence > 0) {
+            confEl.textContent = ` (${data.confidence.toFixed(2)})`;
+            confEl.style.color = data.confidence >= SPEAK_MIN_CONFIDENCE ? "#34d399" : "#fbbf24";
+          } else {
+            confEl.textContent = "";
+          }
+
+          if (
+            data.label &&
+            data.label !== "collecting" &&
+            data.label !== "waiting..." &&
+            typeof data.confidence === "number" &&
+            data.confidence >= SPEAK_MIN_CONFIDENCE
+          ) {
+            speakText(data.label);
+          }
+        } catch (err) {
+          console.error("Error parsing message:", err);
+        }
+      };
+    }
+
+    function captureFrameAndSend() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      if (!video.videoWidth || !video.videoHeight) return;
+      
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.5);
+      ws.send(JSON.stringify({ image: dataUrl }));
+    }
+
+    async function init() {
+      await setupCamera();
+      connectWebSocket();
+      setInterval(captureFrameAndSend, 200);
+    }
+
+    // Cleanup on page unload
+    window.addEventListener("beforeunload", () => {
+      if (ws) {
+        ws.close();
+      }
+      if (video.srcObject) {
+        const stream = video.srcObject;
+        stream.getTracks().forEach(track => track.stop());
+      }
+    });
+
+    init().catch((err) => {
+      statusEl.textContent = "Error: " + err.message;
+      statusEl.style.color = "#ef4444";
+      console.error(err);
+    });
+  </script>
+</body>
+</html>
+
+
+
+
+
+

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Text to Sign - ISL Translator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="nav-logo">ISL Translator</a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="sign-to-text.html" class="nav-link">Sign to Text</a>
+        <a href="text-to-sign.html" class="nav-link active">Text to Sign</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="card">
+      <h2>Text to Sign Translation</h2>
+      <p class="subtitle">Enter text to see sign language demonstrations</p>
+      
+      <div class="input-section">
+        <textarea 
+          id="textInput" 
+          placeholder="Enter text to translate to sign language..."
+          rows="4"
+          class="text-input"
+        ></textarea>
+        <div class="button-group">
+          <button id="speechToTextBtn" class="btn-secondary">
+            <span id="speechIcon">🎤</span>
+            <span id="speechText">Speech to Text</span>
+          </button>
+          <button id="translateBtn" class="btn-primary">Translate to Sign</button>
+        </div>
+      </div>
+
+      <div id="signOutput" class="sign-output">
+        <p class="placeholder-text">Enter text above and click Translate to see sign language translation</p>
+      </div>
+
+      <div id="status" class="status-message">Ready</div>
+    </div>
+  </main>
+
+  <script>
+    const textInput = document.getElementById("textInput");
+    const translateBtn = document.getElementById("translateBtn");
+    const speechToTextBtn = document.getElementById("speechToTextBtn");
+    const speechIcon = document.getElementById("speechIcon");
+    const speechText = document.getElementById("speechText");
+    const signOutput = document.getElementById("signOutput");
+    const statusEl = document.getElementById("status");
+
+    const API_BASE_URL = "http://localhost:8000";
+    
+    let recognition = null;
+    let isListening = false;
+
+    // Initialize Speech Recognition
+    function initializeSpeechRecognition() {
+      // Check for browser support
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        statusEl.textContent = "Speech recognition not supported. Please use Chrome, Edge, or Safari.";
+        statusEl.style.color = "#ef4444";
+        speechToTextBtn.disabled = true;
+        return false;
+      }
+
+      try {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => {
+          isListening = true;
+          speechIcon.textContent = "🔴";
+          speechText.textContent = "Listening...";
+          speechToTextBtn.classList.add("active");
+          statusEl.textContent = "🎤 Listening... Speak now!";
+          statusEl.style.color = "#34d399";
+        };
+
+        recognition.onresult = (event) => {
+          if (event.results.length > 0 && event.results[0].length > 0) {
+            const transcript = event.results[0][0].transcript;
+            textInput.value = transcript.trim();
+            statusEl.textContent = `✅ Heard: "${transcript.trim()}"`;
+            statusEl.style.color = "#34d399";
+            
+            // Automatically translate after speech recognition
+            setTimeout(() => {
+              translateText();
+            }, 800);
+          }
+        };
+
+        recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          let errorMsg = "Error: ";
+          
+          switch(event.error) {
+            case 'no-speech':
+              errorMsg = "No speech detected. Please try again.";
+              break;
+            case 'audio-capture':
+              errorMsg = "No microphone found. Please check your microphone.";
+              break;
+            case 'not-allowed':
+              errorMsg = "Microphone permission denied. Please allow microphone access.";
+              break;
+            case 'network':
+              errorMsg = "Network error. Please check your connection.";
+              break;
+            default:
+              errorMsg = `Error: ${event.error}`;
+          }
+          
+          statusEl.textContent = errorMsg;
+          statusEl.style.color = "#ef4444";
+          stopListening();
+        };
+
+        recognition.onend = () => {
+          if (isListening) {
+            // Only stop if we're still supposed to be listening
+            stopListening();
+          }
+        };
+
+        return true;
+      } catch (error) {
+        console.error('Failed to initialize speech recognition:', error);
+        statusEl.textContent = "Failed to initialize speech recognition";
+        statusEl.style.color = "#ef4444";
+        return false;
+      }
+    }
+
+    function startListening() {
+      if (isListening) {
+        stopListening();
+        return;
+      }
+
+      // Request microphone permission first
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(() => {
+          // Permission granted, initialize and start
+          if (!recognition) {
+            if (!initializeSpeechRecognition()) {
+              return;
+            }
+          }
+
+          try {
+            recognition.start();
+          } catch (error) {
+            console.error('Error starting recognition:', error);
+            if (error.message && error.message.includes('already started')) {
+              // Already listening, just update UI
+              return;
+            }
+            statusEl.textContent = "Could not start speech recognition. Please try again.";
+            statusEl.style.color = "#ef4444";
+          }
+        })
+        .catch((error) => {
+          console.error('Microphone permission error:', error);
+          statusEl.textContent = "Microphone permission denied. Please allow access and try again.";
+          statusEl.style.color = "#ef4444";
+        });
+    }
+
+    function stopListening() {
+      isListening = false;
+      speechIcon.textContent = "🎤";
+      speechText.textContent = "Speech to Text";
+      speechToTextBtn.classList.remove("active");
+      
+      if (recognition) {
+        try {
+          recognition.stop();
+        } catch (error) {
+          // Ignore errors when stopping
+          console.log('Stopped recognition');
+        }
+      }
+    }
+
+    speechToTextBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (isListening) {
+        stopListening();
+      } else {
+        startListening();
+      }
+    });
+
+    async function translateText() {
+      const text = textInput.value.trim();
+      
+      if (!text) {
+        statusEl.textContent = "Please enter some text";
+        statusEl.style.color = "#fbbf24";
+        return;
+      }
+
+      statusEl.textContent = "Translating...";
+      statusEl.style.color = "#94a3b8";
+      translateBtn.disabled = true;
+
+      try {
+        // TODO: Replace this with your actual text-to-sign API endpoint
+        // For now, this is a placeholder that you can modify later
+        const response = await fetch(`${API_BASE_URL}/text-to-sign`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: text }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Display results based on API response
+        if (data.status === "success" && data.type === "gif") {
+          // Display GIF
+          const gifUrl = `${API_BASE_URL}${data.gif_path}`;
+          signOutput.innerHTML = `
+            <div class="sign-result">
+              <h3>Sign Language for: "${data.matched_phrase}"</h3>
+              <div class="gif-container">
+                <img src="${gifUrl}" alt="Sign language for ${data.matched_phrase}" class="sign-gif" />
+              </div>
+              <p class="info-text">✅ Found matching sign language animation</p>
+            </div>
+          `;
+          statusEl.textContent = `Found: ${data.matched_phrase}`;
+          statusEl.style.color = "#34d399";
+        } else if (data.status === "spell" && data.type === "letters") {
+          // Spell out letters - use GIF if available, otherwise JPG
+          const lettersHtml = data.letters.map(letterData => {
+            const letter = letterData.letter || letterData; // Handle both old and new format
+            let letterUrl = null;
+            let isGif = false;
+            
+            if (typeof letterData === 'object' && letterData.path) {
+              letterUrl = `${API_BASE_URL}${letterData.path}`;
+              isGif = letterData.format === 'gif';
+            } else {
+              // Fallback for old format
+              letterUrl = `${API_BASE_URL}/static/text_to_sign/ISL_Gifs/${letter.toLowerCase()}.gif`;
+            }
+            
+            const letterChar = typeof letter === 'string' ? letter : letterData.letter;
+            const imageClass = isGif ? 'letter-gif' : 'letter-image';
+            
+            return `
+              <div class="letter-item">
+                ${letterUrl ? `
+                  <img src="${letterUrl}" alt="${letterChar}" 
+                       onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" 
+                       class="${imageClass}" />
+                ` : ''}
+                <span class="letter-fallback" style="display:none; font-size: 2rem; padding: 1rem;">${letterChar.toUpperCase()}</span>
+                <span class="letter-label">${letterChar.toUpperCase()}</span>
+              </div>
+            `;
+          }).join('');
+          
+          signOutput.innerHTML = `
+            <div class="sign-result">
+              <h3>Spelling: "${data.text}"</h3>
+              <p class="info-text">No phrase GIF found. Displaying letter-by-letter:</p>
+              <div class="letters-container">
+                ${lettersHtml}
+              </div>
+            </div>
+          `;
+          statusEl.textContent = "Spelling out letters";
+          statusEl.style.color = "#fbbf24";
+        } else {
+          signOutput.innerHTML = `
+            <div class="sign-result">
+              <h3>Translation for: "${text}"</h3>
+              <p class="info-text">${data.message || "Unable to translate"}</p>
+            </div>
+          `;
+          statusEl.textContent = data.message || "Translation complete";
+          statusEl.style.color = "#94a3b8";
+        }
+      } catch (error) {
+        console.error("Translation error:", error);
+        signOutput.innerHTML = `
+          <div class="sign-result error">
+            <p class="error-text">
+              Error: ${error.message}. 
+              <br>Make sure the backend server is running and the endpoint is implemented.
+            </p>
+          </div>
+        `;
+        statusEl.textContent = "Translation failed";
+        statusEl.style.color = "#ef4444";
+      } finally {
+        translateBtn.disabled = false;
+      }
+    }
+
+    translateBtn.addEventListener("click", translateText);
+    
+    textInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter" && e.ctrlKey) {
+        translateText();
+      }
+    });
+  </script>
+</body>
+</html>
+
+
+
+
+
+
