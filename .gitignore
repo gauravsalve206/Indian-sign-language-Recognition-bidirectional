@@ -52,8 +52,8 @@ logs/
 # models/*.hdf5
 
 # Dataset (optional - uncomment if dataset is too large)
-# dataset/
-# video_dataset/
+dataset/
+video_dataset/
 
 # Jupyter Notebook
 .ipynb_checkpoints
