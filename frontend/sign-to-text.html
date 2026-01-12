@@ -46,7 +46,9 @@
     const speakIcon = document.getElementById("speakIcon");
     const speakTextEl = document.getElementById("speakText");
 
-    const WS_URL = "ws://localhost:8000/ws";
+    // Auto-detect WebSocket URL (works for localhost and production)
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const WS_URL = `${protocol}//${window.location.host}/ws`;
     let ws;
     let lastSpokenLabel = "";
     let lastSpokenTime = 0;
