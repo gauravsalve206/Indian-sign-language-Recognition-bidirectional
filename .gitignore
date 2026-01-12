@@ -48,8 +48,8 @@ Thumbs.db
 logs/
 
 # Model files (optional - uncomment if models are too large for Git)
-# models/*.h5
-# models/*.hdf5
+models/*.h5
+models/*.hdf5
 
 # Dataset (optional - uncomment if dataset is too large)
 dataset/
